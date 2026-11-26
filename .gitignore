@@ -1,0 +1,14 @@
+# Compilation
+bin/
+obj/
+# Visual Studio / VS Code / Rider
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+# Tests
+TestResults/
+# Divers
+*.log
+Thumbs.db

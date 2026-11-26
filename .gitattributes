@@ -1,0 +1,5 @@
+# Laisse Git normaliser les fins de ligne (Windows CRLF <-> Linux LF)
+* text=auto
+*.pptx binary
+*.png binary
+*.jpg binary

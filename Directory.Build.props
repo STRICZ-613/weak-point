@@ -1,0 +1,9 @@
+<Project>
+  <!-- Réglages communs aux 3 projets. Pour passer de .NET 10 à .NET 8 : changer seulement DotNetTfm. -->
+  <PropertyGroup>
+    <DotNetTfm>net10.0</DotNetTfm>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+</Project>

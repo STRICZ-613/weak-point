@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(DotNetTfm)</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- SDK officiel Microsoft pour lire/écrire Word, Excel, PowerPoint sans installer Office -->
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
+  </ItemGroup>
+</Project>

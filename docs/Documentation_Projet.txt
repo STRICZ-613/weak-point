@@ -1,0 +1,923 @@
+==============================================================================
+ WEAK POINT — RÉPLIQUE DE POWERPOINT EN C#
+ Documentation du projet : recherche, répartition des tâches, structure
+==============================================================================
+Version        : 1.0 — 23/11/2026
+Langue         : français (documentation, commentaires de code, messages de commit)
+Technologies   : C# / .NET 10 (WPF), GitHub, VS Code, cmder
+Nom de l'app   : « Weak Point » (dans le code, les projets et les dossiers : « WeakPoint »)
+
+COMMENT UTILISER CE DOCUMENT (équipe ET agents IA)
+  Ce document est le guide de référence du projet. Il s'adresse aux 4 membres de l'équipe et
+  aux agents IA que chaque membre utilise pour coder. Un agent IA doit le lire EN ENTIER
+  avant d'écrire du code, puis respecter ces points :
+   - Savoir pour quel membre (M1 à M4) il travaille ; si ce n'est pas précisé, le demander.
+   - Ne créer et ne modifier QUE les fichiers de ce membre (sections 5 et 6, règle R5 de la
+     section 7). Pour tout autre fichier : le signaler au lieu de le modifier.
+   - Travailler sur la branche personnelle du membre (m1 à m4), jamais directement sur
+     « dev » ni sur « main » (section 7).
+   - Respecter l'ordre de priorité : P1 d'abord, puis P2, puis P3 (sections 2.3 et 8).
+   - Respecter l'architecture (section 4) et les conventions de langue (hypothèse H3).
+
+TABLE DES MATIÈRES
+  1. Objectif et hypothèses
+  2. Recherche : que doit faire une réplique « efficace » de PowerPoint ?
+  3. Choix techniques
+  4. Architecture de l'application
+  5. Répartition des tâches entre les 4 membres
+  6. Structure du projet : dossiers, fichiers, responsables, rôles
+  7. Règles de travail avec GitHub
+  8. Planning par phases
+  9. Mise en route pas à pas (avec le « pourquoi »)
+ 10. Risques et parades
+
+==============================================================================
+1. OBJECTIF ET HYPOTHÈSES
+==============================================================================
+
+Objectif : construire une application de bureau Windows qui reproduit l'essentiel de
+PowerPoint : créer des diapositives, y placer du texte, des formes et des images, les
+mettre en forme, les présenter en plein écran, et surtout OUVRIR et ENREGISTRER de vrais
+fichiers PowerPoint (.pptx).
+
+Équipe :
+  - Membre 1 (chef technique)      : niveau avancé  -> parties les plus difficiles
+  - Membre 2                       : niveau avancé  -> parties les plus difficiles
+  - Membre 3                       : niveau intermédiaire -> parties de difficulté moyenne
+  - Membre 4                       : parties moins complexes (mais pas triviales)
+
+Hypothèses (à corriger si elles sont fausses) :
+  H1. Le membre 3 est de niveau intermédiaire (entre M2 et M4).
+  H2. Tout le monde développe sous Windows (WPF ne fonctionne que sous Windows).
+  H3. Les NOMS dans le code (classes, méthodes, variables) sont en anglais, comme le veut
+      la convention de l'industrie ; les COMMENTAIRES, la documentation, les messages de
+      commit et l'interface utilisateur sont en français.
+  H4. Il n'y a pas de date limite : le projet est mené le plus vite possible. On livre d'abord
+      ce qui rend l'application utilisable comme un PowerPoint de base (priorité P1), puis on
+      ajoute les autres fonctions (P2, puis P3). Le plan (section 8) suit cet ordre de priorité,
+      sans dates ni semaines.
+  H5. Le Membre 3 est le responsable GUI (interface graphique) : il possède tous les fichiers
+      XAML de vues et de styles, pour garantir un aspect cohérent (section 5). Proposition à
+      confirmer ; si l'équipe préfère un autre membre (ex. M1), il faut réattribuer ces
+      fichiers dans les sections 5 et 6.
+
+==============================================================================
+2. RECHERCHE : QUE DOIT FAIRE UNE RÉPLIQUE « EFFICACE » DE POWERPOINT ?
+==============================================================================
+
+2.1 Méthode
+Synthèse de : (a) l'organisation de PowerPoint (onglets Accueil, Insertion, Création,
+Transitions, Diaporama), (b) la norme Open XML (ECMA-376 / ISO 29500) qui décrit le format
+.pptx, (c) la documentation du SDK Open XML de Microsoft et des versions actuelles de .NET.
+
+2.2 Les 6 fonctions qui définissent un logiciel de présentation
+  1. Gérer un document de plusieurs diapositives (ajouter, supprimer, réordonner).
+  2. Éditer visuellement (placer, déplacer, redimensionner des objets à la souris).
+  3. Mettre en forme (police, couleurs, remplissage, contours, fond).
+  4. Présenter (mode diaporama plein écran).
+  5. Lire / écrire le format standard .pptx (sinon ce n'est pas « PowerPoint »).
+  6. Offrir le confort attendu : annuler / rétablir, copier / coller, raccourcis clavier.
+Si l'une de ces six fonctions manque, l'application ne sera pas jugée « effective ».
+
+2.3 Fonctionnalités par priorité
+  P1 = indispensable (sans cela ce n'est pas un PowerPoint)   <- À LIVRER ABSOLUMENT
+  P2 = important (qualité)                                    <- À FAIRE si P1 terminé
+  P3 = bonus                                                  <- seulement s'il reste du temps
+
+ --- P1 : INDISPENSABLE ---
+  Fichiers
+   F01  Nouvelle présentation (format 16:9 ou 4:3)
+   F02  Ouvrir un .pptx (texte, formes, images, fond)
+   F03  Enregistrer / Enregistrer sous en .pptx, rouvrable dans PowerPoint SANS message de
+        réparation
+   F04  Alerte si modifications non enregistrées ; liste des fichiers récents
+  Diapositives
+   F05  Panneau de vignettes à gauche ; cliquer pour changer de diapositive
+   F06  Ajouter, supprimer, dupliquer, réordonner (glisser-déposer) des diapositives
+   F07  Choisir une disposition (Titre, Titre + Contenu, Deux contenus, Vide)
+  Édition sur la diapositive (canvas)
+   F08  Insérer une zone de texte ; modifier le texte directement dans la zone
+   F09  Insérer des formes (rectangle, ellipse, triangle, ligne, flèche)
+   F10  Insérer une image (PNG / JPG) depuis le disque
+   F11  Sélectionner, déplacer, redimensionner (8 poignées), pivoter, supprimer
+   F12  Copier, couper, coller, dupliquer des éléments
+   F13  Ordre d'empilement (premier plan / arrière-plan)
+   F14  Annuler / Rétablir (Ctrl+Z / Ctrl+Y), sur toutes les actions d'édition
+  Mise en forme
+   F15  Texte : police, taille, gras, italique, souligné, couleur, alignement, puces
+   F16  Forme : couleur de remplissage, couleur et épaisseur du contour
+   F17  Fond de diapositive (couleur)
+  Présentation
+   F18  Diaporama plein écran (F5) : suivant / précédent (flèches, clic), Échap pour quitter
+  Interface
+   F19  Interface type PowerPoint : ruban ou barre d'outils à onglets, vignettes, zone
+        centrale, volet de notes, barre d'état
+   F20  Raccourcis standards (Ctrl+N / O / S / C / V / X / Z / Y, Suppr, F5)
+
+ --- P2 : IMPORTANT ---
+   F21  Notes du présentateur (affichage, édition, lecture / écriture dans le .pptx)
+   F22  Aligner / distribuer ; guides d'alignement magnétiques
+   F23  Grouper / dissocier des éléments
+   F24  Transitions simples (fondu, balayage) : lecture, écriture, rendu en diaporama
+   F25  Export des diapositives en images PNG
+   F26  Tableaux simples
+   F27  Palettes de couleurs / thèmes prédéfinis
+   F28  Conserver (sans les afficher) les objets non gérés (graphiques, SmartArt...) pour
+        ne pas les perdre quand on enregistre : indispensable pour ne pas « casser » un
+        fichier existant
+   F29  Zoom de la zone d'édition, « ajuster à la fenêtre »
+
+ --- P3 : BONUS ---
+   F30  Export PDF            F31  Rechercher / remplacer
+   F32  Masque de diapositives simplifié     F33  Animations basiques
+   F34  Vue « trieuse de diapositives »      F35  Impression
+   F36  Mode présentateur (2 écrans)         F37  Sauvegarde automatique
+
+2.4 Hors périmètre (on ne le fait PAS, et on le dit dans le rapport)
+  SmartArt, graphiques, audio / vidéo, macros VBA, collaboration en temps réel,
+  commentaires, animation « Morph », correction orthographique, effets 3D / ombres
+  complexes, fidélité visuelle à 100 % avec PowerPoint (polices et effets approchés).
+
+2.5 Ce qu'il faut savoir sur le format .pptx AVANT de coder
+  - Un .pptx est une archive ZIP contenant des fichiers XML (norme Open XML). Astuce :
+    renommer un .pptx en .zip et l'ouvrir pour voir son contenu.
+  - Parties importantes de l'archive :
+      /ppt/presentation.xml        liste des diapositives + taille de page
+      /ppt/slides/slideN.xml       contenu de chaque diapositive
+      /ppt/slideLayouts/           dispositions (Titre, Titre + Contenu...)
+      /ppt/slideMasters/           masque (style commun)
+      /ppt/theme/                  couleurs et polices du thème
+      /ppt/media/                  images
+      /ppt/notesSlides/            notes du présentateur
+      [Content_Types].xml et les fichiers _rels : déclarent les parties et leurs liens
+  - Objets d'une diapositive : p:sp (forme ou texte), p:pic (image), p:graphicFrame
+    (tableau / graphique), p:grpSp (groupe), p:cxnSp (connecteur).
+  - Unités : l'EMU. 914 400 EMU = 1 pouce ; 12 700 EMU = 1 point ; 9 525 EMU = 1 unité WPF
+    (96 DPI). Diapositive 16:9 = 12 192 000 x 6 858 000 EMU = 1280 x 720 unités WPF.
+    Diapositive 4:3 = 9 144 000 x 6 858 000 EMU = 960 x 720 unités WPF.
+  - Héritage : une forme n'indique pas toujours sa position ni sa police ; elle les hérite
+    de sa disposition, puis du masque, puis du thème. C'est la partie la plus difficile de
+    la lecture d'un fichier -> fichier PptxThemeResolver.cs (Membre 1).
+  - Validation : le SDK fournit OpenXmlValidator pour vérifier qu'un fichier généré respecte
+    la norme. On l'utilise dans les tests (PptxRoundTripTests.cs).
+
+2.6 Critères d'acceptation (la démonstration finale doit réussir tout cela)
+  C1  Créer 5 diapositives avec texte, formes et image, enregistrer, puis ouvrir le fichier
+      dans PowerPoint ou LibreOffice Impress sans erreur.
+  C2  Ouvrir un .pptx créé dans PowerPoint (titre, texte, formes, images simples) : les
+      objets apparaissent au bon endroit avec le bon texte.
+  C3  Modifier, enregistrer, rouvrir dans Weak Point : le résultat est identique.
+  C4  Ctrl+Z annule toutes les actions d'édition (et Ctrl+Y les rétablit).
+  C5  Le diaporama fonctionne depuis la première diapositive et depuis la courante.
+  C6  Un fichier contenant des objets non gérés s'ouvre sans plantage, et ces objets sont
+      toujours présents après enregistrement.
+  C7  Les tests unitaires passent ; le manuel et le rapport sont livrés.
+
+==============================================================================
+3. CHOIX TECHNIQUES
+==============================================================================
+
+  Langage / plateforme : C# sur .NET 10. .NET 10 est une version LTS (support de 3 ans),
+      publiée en novembre 2025. Si un membre n'a que le SDK .NET 8, changer la seule ligne
+      <DotNetTfm> dans Directory.Build.props.
+  Interface : WPF (Windows uniquement). Pourquoi : dessin vectoriel natif, Canvas,
+      transformations (rotation), Adorners (poignées de sélection), RichTextBox. En
+      WinForms il faudrait tout dessiner à la main ; MAUI / Avalonia sont multiplateformes
+      mais bien plus lourds pour un projet scolaire.
+  Lecture / écriture .pptx : paquet NuGet « DocumentFormat.OpenXml » (SDK Open XML officiel
+      de Microsoft, version 3.5.1 au moment de la rédaction). Pourquoi : lit et écrit les
+      .pptx sans installer Office. Interdit : l'interop COM avec PowerPoint (exigerait
+      Office installé, ce qui serait de la triche pour une « réplique »).
+  Organisation du code : MVVM (Modèle - Vue - VueModèle) pour séparer les données, l'écran
+      et la logique d'écran : chaque membre travaille dans « sa » couche sans casser les
+      autres.
+  Annuler / Rétablir : pattern « Command » (chaque modification est un objet avec Execute()
+      et Undo()). C'est la méthode standard ; elle doit être en place TÔT car toute
+      modification en dépend.
+  Tests : xUnit. Le projet Core ne dépend pas de WPF précisément pour pouvoir être testé.
+  Fichiers récents / réglages : JSON via System.Text.Json (inclus dans .NET).
+
+==============================================================================
+4. ARCHITECTURE DE L'APPLICATION
+==============================================================================
+
+  3 projets dans une solution :
+
+     WeakPoint.UI (WPF)    ───────►  WeakPoint.Core (bibliothèque, SANS WPF)
+       Views (XAML)                    Models   : Presentation, Slide, éléments
+       ViewModels                      Pptx     : lecture / écriture .pptx
+       Editor (canvas, outils)         Commands : annuler / rétablir
+       Rendering                       Utils    : conversions, identifiants
+       Services (fichiers, export)
+                                     WeakPoint.Tests ──► Core
+
+  Règle d'or n°1 : le Core ne référence JAMAIS WPF (pas de System.Windows). Pourquoi : il
+      reste testable automatiquement et indépendant de l'écran.
+  Règle d'or n°2 : le MODÈLE (Presentation, Slide, éléments) est la seule source de vérité.
+      L'écran n'en est que le reflet. Pourquoi : enregistrer, annuler et dessiner
+      deviennent simples et cohérents.
+
+  Flux « Ouvrir un fichier » :
+     Bouton Ouvrir -> MainViewModel -> DialogService (choix du fichier) -> PptxReader
+     -> Presentation -> SlideViewModel -> SlideRenderer -> SlideCanvas (affichage)
+
+  Flux « Déplacer un objet » :
+     Souris -> SelectTool -> MoveElementAction -> UndoRedoManager.Execute()
+     -> modifie le modèle -> l'écran se rafraîchit ; Ctrl+Z appelle Undo() sur l'action.
+
+==============================================================================
+5. RÉPARTITION DES TÂCHES ENTRE LES 4 MEMBRES
+==============================================================================
+
+Principe : chaque membre possède des fichiers précis (voir section 6) et seul le
+propriétaire d'un fichier le modifie. Les difficultés sont réparties ainsi :
+  M1 et M2 -> les deux moteurs difficiles (format .pptx / moteur d'édition)
+  M3       -> la couche « interface graphique (GUI), mise en forme, vignettes, diaporama »
+              (difficulté moyenne)
+  M4       -> les services et briques autonomes (moins complexes, bien délimitées)
+Nombre de fichiers : M1 = 30, M2 = 23, M3 = 28, M4 = 22. Le nombre de fichiers n'est pas
+l'unité de charge : ceux de M1 et M2 sont longs et difficiles (moteur .pptx, moteur
+d'édition), ceux de M4 sont courts, autonomes et simples (M1 compte aussi les fichiers de
+configuration du dépôt).
+
+RESPONSABLE GUI : le Membre 3 est le SEUL responsable de l'interface graphique (GUI), pour que
+l'application garde un aspect cohérent. Il possède tous les fichiers XAML de vues (dossier
+Views/, avec Dialogs/ et Popups/), les ressources (Resources/ : Colors.xaml, ControlStyles.xaml,
+icônes) et les convertisseurs XAML (Converters/). Les autres membres n'écrivent ni vue XAML ni
+style : ils utilisent les couleurs et styles de Colors.xaml / ControlStyles.xaml, y compris pour
+les éléments dessinés en code (ex. poignées de SelectionAdorner). Les ViewModels restent à leur
+propriétaire : M3 s'y connecte par binding. App.xaml et MainWindow.xaml restent à M1 (fichiers
+sensibles, règle R6) : M1 y assemble les vues de M3 sans les restyler.
+Pour équilibrer la charge, les actions annulables sur les diapositives (Add / Delete /
+Duplicate / Move) et leurs tests passent de M3 à M4.
+
+──────────────────────────────────────────────────────────────────────────────
+MEMBRE 1 — CHEF TECHNIQUE : MODÈLE ET FORMAT PPTX            [difficulté : élevée]
+──────────────────────────────────────────────────────────────────────────────
+  Missions :
+   1. Concevoir et GELER le modèle (dossier Models/) et les interfaces en Phase 0 (en
+      3 jours maximum). C'est le « contrat » dont dépendent les 3 autres membres.
+   2. Lecture / écriture des .pptx : PptxReader, PptxWriter, PptxSlideParser,
+      PptxThemeResolver, PptxTemplate. C'est la partie la plus technique du projet.
+   3. Squelette de l'application : App, MainWindow, MainViewModel (commandes Nouveau /
+      Ouvrir / Enregistrer), ViewModelBase, RelayCommand.
+   4. Intégration : assemble les modules des autres dans MainWindow. Seul à modifier les
+      fichiers sensibles (.csproj, .sln, App.xaml, MainWindow.xaml, MainViewModel.cs).
+   5. Gestion du dépôt : protection de la branche main, CODEOWNERS, résolution des
+      conflits, relecture des Pull Requests de M2 et M3.
+  Dépend de : personne (démarre en premier).   Fournit à : tous (le modèle).
+  À apprendre : SDK Open XML (PresentationDocument, SlidePart, DrawingML), MVVM.
+  Fichiers (30) :
+     .gitignore, .gitattributes, .editorconfig, Directory.Build.props, WeakPoint.sln,
+     CODEOWNERS, Documentation_Projet.txt, WeakPoint.Core.csproj, Presentation.cs, Slide.cs,
+     SlideElement.cs, TextBoxElement.cs, ShapeElement.cs, ImageElement.cs,
+     UnsupportedElement.cs, PptxReader.cs, PptxWriter.cs, PptxSlideParser.cs,
+     PptxThemeResolver.cs, PptxTemplate.cs, WeakPoint.UI.csproj, App.xaml, App.xaml.cs,
+     MainWindow.xaml, ViewModelBase.cs, RelayCommand.cs, MainViewModel.cs, SlideViewModel.cs,
+     WeakPoint.Tests.csproj, PptxRoundTripTests.cs
+
+──────────────────────────────────────────────────────────────────────────────
+MEMBRE 2 — MOTEUR D'ÉDITION                                  [difficulté : élevée]
+──────────────────────────────────────────────────────────────────────────────
+  Missions : tout ce qui se passe quand on manipule la diapositive.
+   1. Rendu : SlideRenderer + ElementVisualFactory (transforment le modèle en visuels
+      WPF). Utilisés aussi par les vignettes, le diaporama et l'export -> en livrer une
+      version SIMPLE dès la Phase 1.
+   2. SlideCanvas : sélection, déplacement, redimensionnement (8 poignées), rotation,
+      SelectionAdorner.
+   3. Outils : SelectTool, DrawShapeTool, TextTool (pattern « State »).
+   4. Édition du texte en place (TextEditorOverlay).
+   5. Annuler / Rétablir : IUndoableAction, UndoRedoManager et les actions sur éléments.
+   6. Copier / couper / coller (ClipboardService).
+   7. (P2) Guides d'alignement magnétiques (SnapGuides).
+  Dépend de : Models (M1). Au début, travailler sur des classes vides et des données
+      factices pour ne pas attendre.
+  Fournit à : M3 (SlideRenderer, UndoRedoManager), M4 (IUndoableAction, SlideRenderer pour
+      l'export).
+  À apprendre : Canvas WPF, Adorner, RotateTransform, hit-testing, pattern Command.
+  Fichiers (23) :
+     IUndoableAction.cs, UndoRedoManager.cs, AddElementAction.cs, DeleteElementAction.cs,
+     MoveElementAction.cs, ResizeElementAction.cs, RotateElementAction.cs,
+     ChangeZOrderAction.cs, ChangePropertyAction.cs, EditorViewModel.cs, ElementViewModel.cs,
+     SlideCanvas.cs, SelectionAdorner.cs, TextEditorOverlay.cs, SnapGuides.cs, ITool.cs,
+     SelectTool.cs, DrawShapeTool.cs, TextTool.cs, SlideRenderer.cs, ElementVisualFactory.cs,
+     ClipboardService.cs, UndoRedoTests.cs
+
+──────────────────────────────────────────────────────────────────────────────
+MEMBRE 3 — RESPONSABLE GUI, MISE EN FORME, VIGNETTES, DIAPORAMA  [difficulté : moyenne]
+──────────────────────────────────────────────────────────────────────────────
+  Missions :
+   1. Ruban / barre d'outils à onglets (RibbonView).
+   2. Panneau de mise en forme (FormatPanel + FormatViewModel) : police, taille, couleurs,
+      remplissage, contour.
+   3. Panneau de vignettes (ThumbnailPanel) : sélection, glisser-déposer pour réordonner,
+      menu clic droit (dupliquer, supprimer).
+   4. Responsable GUI : cohérence visuelle de toute l'application. Possède Resources/
+      (Colors.xaml, ControlStyles.xaml, icônes), Converters/ et TOUTES les vues XAML : ruban,
+      vignettes, panneau de format, diaporama, volet de notes, barre d'état, dialogues
+      « Nouveau » et « À propos », galerie de formes, sélecteur de couleurs.
+   5. Modèles de style : TextFormat, FillStyle, StrokeStyle, SlideLayout, SlideBackground,
+      SlideTransition.
+   6. Diaporama plein écran (SlideshowWindow + SlideshowViewModel).
+   7. « Mappers » PPTX : PptxShapeMapper, PptxTextMapper, PptxImageHandler (et, en P2,
+      PptxTransitionHandler), avec l'aide de M1.
+  Dépend de : M1 (modèle), M2 (SlideRenderer, UndoRedoManager), M4 (actions sur les
+      diapositives, NotesViewModel, StatusBarViewModel).
+      Si M2 n'a pas fini : vignettes avec un rendu provisoire (rectangle + titre).
+      Si les ViewModels de M4 ne sont pas prêts : vues avec des données factices.
+  À apprendre : XAML, binding, styles et ressources XAML, ItemsControl, drag & drop WPF, DrawingML
+      (formes / texte).
+  Fichiers (22) :
+     README.md, Manuel_Utilisateur.md, Rapport_Projet.md, ColorValue.cs, ShapeType.cs,
+     HorizontalAlign.cs, PptxNotesHandler.cs, EmuConverter.cs, IdGenerator.cs,
+     TextSearchService.cs, NotesViewModel.cs, StatusBarViewModel.cs, DialogService.cs,
+     RecentFilesService.cs, ExportService.cs, AddSlideAction.cs, DeleteSlideAction.cs,
+     DuplicateSlideAction.cs, MoveSlideAction.cs, EmuConverterTests.cs, SlideActionsTests.cs,
+     README.txt
+
+DÉPENDANCES ENTRE MEMBRES ET PARADES
+  Qui attend      De     Pour                  Parade si retard
+  M2, M3, M4      M1     Modèle (Models/)      PR « contrat » prioritaire en Phase 0 ;
+                                               avant elle, travailler sur des classes vides
+  M3              M2     SlideRenderer         rendu provisoire dans les vignettes
+  M4              M2     SlideRenderer         export PNG fait en dernier (Phase 4)
+  M3              M2     UndoRedoManager       coder contre l'interface IUndoableAction
+  M4              M2     IUndoableAction       livrée en Phase 0 ; coder contre cette interface
+  M3              M4     Actions diapo, VM     vues avec données factices en attendant
+  M3              M1     PptxSlideParser       tester les mappers sur de petits morceaux de XML
+  M1              M4     fichiers .pptx test   M1 crée 2-3 fichiers simples lui-même au début
+
+==============================================================================
+6. STRUCTURE DU PROJET : DOSSIERS, FICHIERS, RESPONSABLES, RÔLES
+==============================================================================
+
+Légende : [M1] à [M4] = membre responsable du fichier.
+(+ .cs) = un fichier .xaml (l'aspect) et son fichier .xaml.cs (le code associé).
+P2 / P3 devant un rôle = fonctionnalité de priorité 2 ou 3 (voir section 2.3).
+
+6.1 Arborescence
+
+WeakPoint/
+├── .github/
+│   └── CODEOWNERS                     [M1]
+├── docs/
+│   ├── Documentation_Projet.txt       [M1]
+│   ├── Manuel_Utilisateur.md          [M4]
+│   └── Rapport_Projet.md              [M4]
+├── src/
+│   ├── WeakPoint.Core/
+│   │   ├── Commands/
+│   │   │   ├── AddElementAction.cs    [M2]
+│   │   │   ├── AddSlideAction.cs      [M4]
+│   │   │   ├── ChangePropertyAction.cs [M2]
+│   │   │   ├── ChangeZOrderAction.cs  [M2]
+│   │   │   ├── DeleteElementAction.cs [M2]
+│   │   │   ├── DeleteSlideAction.cs   [M4]
+│   │   │   ├── DuplicateSlideAction.cs [M4]
+│   │   │   ├── IUndoableAction.cs     [M2]
+│   │   │   ├── MoveElementAction.cs   [M2]
+│   │   │   ├── MoveSlideAction.cs     [M4]
+│   │   │   ├── ResizeElementAction.cs [M2]
+│   │   │   ├── RotateElementAction.cs [M2]
+│   │   │   └── UndoRedoManager.cs     [M2]
+│   │   ├── Models/
+│   │   │   ├── ColorValue.cs          [M4]
+│   │   │   ├── FillStyle.cs           [M3]
+│   │   │   ├── HorizontalAlign.cs     [M4]
+│   │   │   ├── ImageElement.cs        [M1]
+│   │   │   ├── Presentation.cs        [M1]
+│   │   │   ├── ShapeElement.cs        [M1]
+│   │   │   ├── ShapeType.cs           [M4]
+│   │   │   ├── Slide.cs               [M1]
+│   │   │   ├── SlideBackground.cs     [M3]
+│   │   │   ├── SlideElement.cs        [M1]
+│   │   │   ├── SlideLayout.cs         [M3]
+│   │   │   ├── SlideTransition.cs     [M3]
+│   │   │   ├── StrokeStyle.cs         [M3]
+│   │   │   ├── TextBoxElement.cs      [M1]
+│   │   │   ├── TextFormat.cs          [M3]
+│   │   │   └── UnsupportedElement.cs  [M1]
+│   │   ├── Pptx/
+│   │   │   ├── PptxImageHandler.cs    [M3]
+│   │   │   ├── PptxNotesHandler.cs    [M4]
+│   │   │   ├── PptxReader.cs          [M1]
+│   │   │   ├── PptxShapeMapper.cs     [M3]
+│   │   │   ├── PptxSlideParser.cs     [M1]
+│   │   │   ├── PptxTemplate.cs        [M1]
+│   │   │   ├── PptxTextMapper.cs      [M3]
+│   │   │   ├── PptxThemeResolver.cs   [M1]
+│   │   │   ├── PptxTransitionHandler.cs [M3]
+│   │   │   └── PptxWriter.cs          [M1]
+│   │   ├── Services/
+│   │   │   └── TextSearchService.cs   [M4]
+│   │   ├── Utils/
+│   │   │   ├── EmuConverter.cs        [M4]
+│   │   │   └── IdGenerator.cs         [M4]
+│   │   └── WeakPoint.Core.csproj      [M1]
+│   └── WeakPoint.UI/
+│       ├── Converters/
+│       │   ├── ColorToBrushConverter.cs [M3]
+│       │   └── EmuToPixelConverter.cs [M3]
+│       ├── Editor/
+│       │   ├── Tools/
+│       │   │   ├── DrawShapeTool.cs   [M2]
+│       │   │   ├── ITool.cs           [M2]
+│       │   │   ├── SelectTool.cs      [M2]
+│       │   │   └── TextTool.cs        [M2]
+│       │   ├── SelectionAdorner.cs    [M2]
+│       │   ├── SlideCanvas.cs         [M2]
+│       │   ├── SnapGuides.cs          [M2]
+│       │   └── TextEditorOverlay.cs   [M2]
+│       ├── Rendering/
+│       │   ├── ElementVisualFactory.cs [M2]
+│       │   └── SlideRenderer.cs       [M2]
+│       ├── Resources/
+│       │   ├── Icons/
+│       │   │   └── .gitkeep           [M3]
+│       │   ├── Colors.xaml            [M3]
+│       │   └── ControlStyles.xaml     [M3]
+│       ├── Services/
+│       │   ├── ClipboardService.cs    [M2]
+│       │   ├── DialogService.cs       [M4]
+│       │   ├── ExportService.cs       [M4]
+│       │   └── RecentFilesService.cs  [M4]
+│       ├── ViewModels/
+│       │   ├── EditorViewModel.cs     [M2]
+│       │   ├── ElementViewModel.cs    [M2]
+│       │   ├── FormatViewModel.cs     [M3]
+│       │   ├── MainViewModel.cs       [M1]
+│       │   ├── NotesViewModel.cs      [M4]
+│       │   ├── RelayCommand.cs        [M1]
+│       │   ├── SlideshowViewModel.cs  [M3]
+│       │   ├── SlideViewModel.cs      [M1]
+│       │   ├── StatusBarViewModel.cs  [M4]
+│       │   ├── ThumbnailsViewModel.cs [M3]
+│       │   └── ViewModelBase.cs       [M1]
+│       ├── Views/
+│       │   ├── Dialogs/
+│       │   │   ├── AboutDialog.xaml (+ .cs) [M3]
+│       │   │   └── NewPresentationDialog.xaml (+ .cs) [M3]
+│       │   ├── Popups/
+│       │   │   ├── ColorPickerPopup.xaml (+ .cs) [M3]
+│       │   │   └── ShapeGalleryPopup.xaml (+ .cs) [M3]
+│       │   ├── FormatPanel.xaml (+ .cs) [M3]
+│       │   ├── NotesPanel.xaml (+ .cs) [M3]
+│       │   ├── RibbonView.xaml (+ .cs) [M3]
+│       │   ├── SlideshowWindow.xaml (+ .cs) [M3]
+│       │   ├── StatusBarView.xaml (+ .cs) [M3]
+│       │   └── ThumbnailPanel.xaml (+ .cs) [M3]
+│       ├── App.xaml                   [M1]
+│       ├── App.xaml.cs                [M1]
+│       ├── MainWindow.xaml (+ .cs)    [M1]
+│       └── WeakPoint.UI.csproj        [M1]
+├── tests/
+│   └── WeakPoint.Tests/
+│       ├── TestFiles/
+│       │   └── README.txt             [M4]
+│       ├── EmuConverterTests.cs       [M4]
+│       ├── PptxRoundTripTests.cs      [M1]
+│       ├── SlideActionsTests.cs       [M4]
+│       ├── WeakPoint.Tests.csproj     [M1]
+│       └── UndoRedoTests.cs           [M2]
+├── .editorconfig                      [M1]
+├── .gitattributes                     [M1]
+├── .gitignore                         [M1]
+├── Directory.Build.props              [M1]
+├── README.md                          [M4]
+└── WeakPoint.sln                      [M1]
+
+6.2 Détail : rôle de chaque fichier
+
+  >> (racine)/
+     README.md                        M4  Présentation du projet, prérequis, commandes de build,
+                                          équipe
+     .gitignore                       M1  Fichiers à ne pas versionner (bin/, obj/, .vs/...)
+     .gitattributes                   M1  Normalise les fins de ligne (évite les conflits inutiles
+                                          sous Windows)
+     .editorconfig                    M1  Règles de style communes (indentation, encodage) pour VS
+                                          Code
+     Directory.Build.props            M1  Réglages communs aux 3 projets (version de .NET,
+                                          nullable...) : un seul endroit à modifier
+     WeakPoint.sln                    M1  Fichier solution : regroupe les 3 projets (Core, UI,
+                                          Tests)
+
+  >> .github/
+     CODEOWNERS                       M1  Associe chaque fichier à son responsable GitHub (relecture
+                                          automatique)
+
+  >> docs/
+     Documentation_Projet.txt         M1  Ce document (recherche, répartition, structure) — M1 le
+                                          tient à jour
+     Manuel_Utilisateur.md            M4  Manuel d'utilisation de l'application, avec captures
+                                          d'écran
+     Rapport_Projet.md                M4  Trame du rapport / de la soutenance (contexte, choix,
+                                          difficultés, bilan)
+
+  >> src/WeakPoint.Core/
+     WeakPoint.Core.csproj            M1  Projet bibliothèque (sans interface graphique) ; référence
+                                          le SDK Open XML
+
+  >> src/WeakPoint.Core/Models/
+     Presentation.cs                  M1  Modèle racine : liste des diapositives, taille de page
+                                          (16:9 / 4:3), métadonnées
+     Slide.cs                         M1  Une diapositive : éléments, fond, disposition, notes,
+                                          transition
+     SlideElement.cs                  M1  Classe de base de tout objet sur la diapo : identifiant,
+                                          position, taille, rotation, ordre Z
+     TextBoxElement.cs                M1  Zone de texte : paragraphes et segments de texte mis en
+                                          forme
+     ShapeElement.cs                  M1  Forme géométrique (rectangle, ellipse, flèche...) avec
+                                          remplissage, contour, texte éventuel
+     ImageElement.cs                  M1  Image insérée : octets de l'image, format, recadrage
+                                          éventuel
+     UnsupportedElement.cs            M1  Objet non géré (graphique, SmartArt...) : XML brut
+                                          conservé pour ne rien perdre à l'enregistrement
+     TextFormat.cs                    M3  Mise en forme du texte : police, taille, gras, italique,
+                                          souligné, couleur, alignement, puces
+     FillStyle.cs                     M3  Style de remplissage : aucun, couleur unie (dégradé en
+                                          bonus)
+     StrokeStyle.cs                   M3  Style de contour : couleur, épaisseur, trait plein /
+                                          pointillé
+     SlideLayout.cs                   M3  Dispositions prédéfinies (Titre, Titre + Contenu, Deux
+                                          contenus, Vide) et leurs zones
+     SlideTransition.cs               M3  Transition entre diapositives (aucune, fondu, balayage) et
+                                          durée
+     SlideBackground.cs               M3  Fond de diapositive : couleur unie ou image
+     ColorValue.cs                    M4  Couleur ARGB indépendante de WPF (le Core ne connaît pas
+                                          WPF), conversion hexadécimale
+     ShapeType.cs                     M4  Énumération des types de formes disponibles
+     HorizontalAlign.cs               M4  Énumération de l'alignement du texte (gauche, centre,
+                                          droite, justifié)
+
+  >> src/WeakPoint.Core/Pptx/
+     PptxReader.cs                    M1  Ouvre un fichier .pptx et construit un objet Presentation
+     PptxWriter.cs                    M1  Enregistre une Presentation en .pptx valide (rouvrable
+                                          dans PowerPoint sans réparation)
+     PptxSlideParser.cs               M1  Lit le XML d'une diapositive (slideN.xml) : formes,
+                                          textes, images, positions en EMU
+     PptxThemeResolver.cs             M1  Résout l'héritage thème / masque / disposition (couleurs,
+                                          polices, positions par défaut)
+     PptxTemplate.cs                  M1  Génère un .pptx vierge minimal valide (base de la commande
+                                          « Nouveau »)
+     PptxShapeMapper.cs               M3  Correspondance formes OpenXML (prstGeom) <-> notre
+                                          ShapeType
+     PptxTextMapper.cs                M3  Correspondance paragraphes / segments OpenXML <->
+                                          TextFormat
+     PptxImageHandler.cs              M3  Lecture / écriture des images (ImagePart) dans le .pptx
+     PptxTransitionHandler.cs         M3  (P2) Lecture / écriture des transitions dans le .pptx
+     PptxNotesHandler.cs              M4  (P2) Lecture / écriture des notes du présentateur dans le
+                                          .pptx (aidé par M1)
+
+  >> src/WeakPoint.Core/Commands/
+     IUndoableAction.cs               M2  Contrat d'une action annulable : Execute() / Undo()
+     UndoRedoManager.cs               M2  Piles Annuler / Rétablir, regroupement d'actions,
+                                          événement « document modifié »
+     AddElementAction.cs              M2  Action : ajouter un élément sur une diapositive
+     DeleteElementAction.cs           M2  Action : supprimer un élément
+     MoveElementAction.cs             M2  Action : déplacer un ou plusieurs éléments
+     ResizeElementAction.cs           M2  Action : redimensionner un élément
+     RotateElementAction.cs           M2  Action : pivoter un élément
+     ChangeZOrderAction.cs            M2  Action : premier plan / arrière-plan
+     ChangePropertyAction.cs          M2  Action générique : modifier une propriété (texte,
+                                          couleur...) — utilisée aussi par M3
+     AddSlideAction.cs                M4  Action : ajouter une diapositive
+     DeleteSlideAction.cs             M4  Action : supprimer une diapositive
+     DuplicateSlideAction.cs          M4  Action : dupliquer une diapositive
+     MoveSlideAction.cs               M4  Action : réordonner une diapositive (glisser-déposer des
+                                          vignettes)
+
+  >> src/WeakPoint.Core/Utils/
+     EmuConverter.cs                  M4  Conversions EMU <-> unités WPF (1 unité = 9525 EMU),
+                                          points (12700), cm
+     IdGenerator.cs                   M4  Génère des identifiants uniques pour les éléments et
+                                          diapositives
+
+  >> src/WeakPoint.Core/Services/
+     TextSearchService.cs             M4  (P3 bonus) Rechercher / remplacer du texte dans la
+                                          présentation
+
+  >> src/WeakPoint.UI/
+     WeakPoint.UI.csproj              M1  Projet WPF (application Windows) ; référence le Core
+     App.xaml                         M1  Point d'entrée WPF, fusionne les dictionnaires de
+                                          ressources
+     App.xaml.cs                      M1  Code de démarrage de l'application
+     MainWindow.xaml (+ .cs)          M1  Fenêtre principale : assemble ruban, vignettes, canvas,
+                                          notes, barre d'état
+
+  >> src/WeakPoint.UI/ViewModels/
+     ViewModelBase.cs                 M1  Classe de base MVVM (INotifyPropertyChanged)
+     RelayCommand.cs                  M1  Implémentation d'ICommand réutilisable pour les boutons
+     MainViewModel.cs                 M1  État global : présentation courante, commandes Nouveau /
+                                          Ouvrir / Enregistrer
+     SlideViewModel.cs                M1  Représente la diapositive affichée et ses éléments pour la
+                                          vue
+     EditorViewModel.cs               M2  Outil actif, sélection courante, zoom du canvas
+     ElementViewModel.cs              M2  Enveloppe observable d'un élément sélectionné (position,
+                                          taille...)
+     ThumbnailsViewModel.cs           M3  Liste des vignettes, diapo sélectionnée, réordonnancement
+     FormatViewModel.cs               M3  Propriétés de mise en forme de la sélection (police,
+                                          couleurs...)
+     SlideshowViewModel.cs            M3  Navigation du diaporama (suivant / précédent / quitter)
+     NotesViewModel.cs                M4  Texte des notes de la diapositive courante
+     StatusBarViewModel.cs            M4  Infos de la barre d'état : n° de diapo / total, niveau de
+                                          zoom
+
+  >> src/WeakPoint.UI/Editor/
+     SlideCanvas.cs                   M2  Contrôle central d'édition : affiche la diapo, gère
+                                          clavier et souris
+     SelectionAdorner.cs              M2  Cadre de sélection avec 8 poignées de redimensionnement +
+                                          poignée de rotation (doit hériter d'Adorner)
+     TextEditorOverlay.cs             M2  Édition du texte directement dans la zone (RichTextBox
+                                          superposé)
+     SnapGuides.cs                    M2  (P2) Guides d'alignement magnétiques pendant le
+                                          déplacement
+
+  >> src/WeakPoint.UI/Editor/Tools/
+     ITool.cs                         M2  Contrat d'un outil (souris down/move/up) : pattern « State
+                                          »
+     SelectTool.cs                    M2  Outil sélection : cliquer, déplacer, redimensionner,
+                                          pivoter
+     DrawShapeTool.cs                 M2  Outil dessin : tracer une forme à la souris
+     TextTool.cs                      M2  Outil texte : tracer une zone de texte
+
+  >> src/WeakPoint.UI/Rendering/
+     SlideRenderer.cs                 M2  Transforme une Slide en visuel WPF — partagé par canvas,
+                                          vignettes, diaporama, export
+     ElementVisualFactory.cs          M2  Crée le visuel WPF de chaque type d'élément (texte, forme,
+                                          image)
+
+  >> src/WeakPoint.UI/Views/
+     RibbonView.xaml (+ .cs)          M3  Ruban / barre d'outils à onglets (Accueil, Insertion,
+                                          Création, Diaporama)
+     ThumbnailPanel.xaml (+ .cs)      M3  Panneau de vignettes à gauche, avec menu clic droit
+     FormatPanel.xaml (+ .cs)         M3  Panneau de mise en forme (police, taille, couleurs,
+                                          contour...)
+     SlideshowWindow.xaml (+ .cs)     M3  Fenêtre plein écran du diaporama
+     NotesPanel.xaml (+ .cs)          M3  Volet des notes sous le canvas
+     StatusBarView.xaml (+ .cs)       M3  Barre d'état : n° de diapo, zoom
+
+  >> src/WeakPoint.UI/Views/Dialogs/
+     NewPresentationDialog.xaml (+ .cs) M3  Dialogue « Nouveau » : choix du format 16:9 / 4:3
+     AboutDialog.xaml (+ .cs)         M3  Boîte « À propos » (noms de l'équipe, version)
+
+  >> src/WeakPoint.UI/Views/Popups/
+     ShapeGalleryPopup.xaml (+ .cs)   M3  Galerie de formes à insérer (grille de boutons)
+     ColorPickerPopup.xaml (+ .cs)    M3  Sélecteur de couleurs (palette + couleurs récentes)
+
+  >> src/WeakPoint.UI/Services/
+     DialogService.cs                 M4  Boîtes Ouvrir / Enregistrer sous / confirmations
+                                          (modifications non enregistrées)
+     RecentFilesService.cs            M4  Liste des fichiers récents (JSON dans %AppData%)
+     ExportService.cs                 M4  Export des diapositives en images PNG (P2) ; PDF en bonus
+     ClipboardService.cs              M2  Copier / couper / coller des éléments (interne + image du
+                                          presse-papiers)
+
+  >> src/WeakPoint.UI/Converters/
+     EmuToPixelConverter.cs           M3  Convertisseur XAML EMU -> unités WPF (doit implémenter
+                                          IValueConverter)
+     ColorToBrushConverter.cs         M3  Convertisseur XAML ColorValue -> Brush (doit implémenter
+                                          IValueConverter)
+
+  >> src/WeakPoint.UI/Resources/
+     Colors.xaml                      M3  Palette de couleurs de l'application
+     ControlStyles.xaml               M3  Styles des boutons, onglets, panneaux (apparence type
+                                          PowerPoint)
+
+  >> src/WeakPoint.UI/Resources/Icons/
+     .gitkeep                         M3  Dossier des icônes (fichier vide pour que Git garde le
+                                          dossier)
+
+  >> tests/WeakPoint.Tests/
+     WeakPoint.Tests.csproj           M1  Projet de tests xUnit ; référence le Core
+     EmuConverterTests.cs             M4  Tests des conversions d'unités
+     PptxRoundTripTests.cs            M1  Tests : écrire -> relire un .pptx, validation avec
+                                          OpenXmlValidator
+     UndoRedoTests.cs                 M2  Tests de l'annulation / rétablissement des actions
+     SlideActionsTests.cs             M4  Tests des actions sur les diapositives
+
+  >> tests/WeakPoint.Tests/TestFiles/
+     README.txt                       M4  Mode d'emploi + collection de petits .pptx de test
+                                          (PowerPoint, LibreOffice, Google Slides)
+
+
+6.3 Remarques
+  - Le squelette fourni (SlideStudio.zip) contient déjà tous ces fichiers : chaque .cs porte
+    un en-tête (responsable + rôle) et une classe vide, le projet est prêt à être complété.
+  - Le squelette (SlideStudio.zip) a été généré avec l'ancien nom et l'ancienne répartition : avant le
+    premier push, M1 y renomme « SlideStudio » en « WeakPoint » (projets, dossiers, namespaces,
+    .sln / .csproj) et en « Weak Point » (titre de la fenêtre, textes affichés), et chaque
+    membre met à jour l'en-tête (responsable) des fichiers dont le responsable a changé
+    depuis le squelette (section 5).
+  - Responsable GUI : tous les fichiers de Views/, Resources/ et Converters/ appartiennent à
+    M3 (voir section 5).
+  - Le dossier Resources/Icons/ contient un fichier vide « .gitkeep » : Git ne sauvegarde pas
+    les dossiers vides, ce fichier force sa présence.
+  - Si une nouvelle classe est nécessaire, son créateur l'ajoute dans le bon dossier et
+    met à jour ce document (section 6) dans la même Pull Request.
+
+==============================================================================
+7. RÈGLES DE TRAVAIL AVEC GITHUB
+==============================================================================
+
+  R1  La branche « main » est réservée à la version finale : personne n'y pousse pendant le
+      projet. Seules exceptions : le tout premier envoi du squelette par M1 (section 9,
+      étape 2) et, à la fin du projet, l'unique fusion « dev » -> « main » faite par M1
+      (Phase 6). Pourquoi : main doit toujours compiler ; c'est la version que l'on présente.
+  R2  Chaque membre travaille sur SA branche personnelle, nommée m1, m2, m3 ou m4 (une seule
+      par membre, créée à partir de « dev » et gardée pendant tout le projet). Le travail
+      terminé et testé est envoyé vers la branche « dev » (voir R4). « dev » rassemble le
+      travail de toute l'équipe : elle doit toujours compiler.
+      Pourquoi : on isole le travail en cours, on peut le relire avant de l'intégrer, et « dev »
+      sert de zone d'intégration sans toucher à « main ».
+  R3  Petits commits, messages en français avec un préfixe :
+         feat: ajoute la rotation des éléments        fix: corrige le calcul des EMU
+         docs: met à jour la documentation            test: ajoute les tests d'EmuConverter
+         refactor: simplifie le rendu des formes      chore: ajuste le .gitignore
+  R4  Tout envoi vers « dev » passe par une Pull Request (PR) de sa branche personnelle vers
+      « dev », relue par un AUTRE membre :
+         M1 <-> M2 se relisent mutuellement ; M3 est relu par M1 ; M4 est relu par M2.
+      Le relecteur vérifie : ça compile, les tests passent, le code est compréhensible.
+  R5  Chacun ne modifie QUE ses fichiers. Pour un autre fichier : ouvrir une « Issue »
+      GitHub ou demander au propriétaire. Pourquoi : c'est la meilleure façon d'éviter les
+      conflits de fusion.
+  R6  Fichiers sensibles, modifiés uniquement par M1 : *.csproj, *.sln,
+      Directory.Build.props, App.xaml, MainWindow.xaml, MainViewModel.cs. Pourquoi : tout le
+      monde en dépend et les conflits y sont difficiles à résoudre (surtout le XAML).
+  R7  Avant chaque push : « dotnet build » puis « dotnet test ». Jamais de code qui ne
+      compile pas.
+  R8  Suivi : une Issue GitHub par fonctionnalité (F01, F02...) et un tableau Kanban
+      (onglet Projects) À faire / En cours / En relecture / Terminé.
+  R9  Fichiers .pptx de test : petits (< 1 Mo) et uniquement dans tests/.../TestFiles/.
+  R10 Chaque matin : « git pull » sur dev puis on fusionne dev dans sa branche personnelle
+      (git merge dev). Pourquoi : on découvre les conflits tôt, quand ils sont petits.
+  R11 Interface graphique : seul M3 (responsable GUI) crée ou modifie les fichiers XAML de
+      vues, les styles (Resources/) et les convertisseurs (Converters/). Pourquoi : un seul
+      responsable garantit un aspect cohérent.
+
+==============================================================================
+8. PLANNING PAR PHASES  (par priorité, SANS date limite)
+==============================================================================
+
+Il n'y a pas de date limite : on avance le plus vite possible. L'ordre des phases suit les
+priorités de la section 2.3 : d'abord tout ce qui est nécessaire pour que l'application soit
+utilisable comme un PowerPoint de base (toutes les fonctions P1, phases 0 à 3), puis seulement
+les fonctions P2 et P3 (phase 4). Un membre n'attaque une fonction P2 ou P3 qu'une fois ses
+propres tâches P1 terminées.
+
+PHASE 0 — FONDATIONS
+   M1 : dépôt GitHub (branches main et dev), structure, Models + interfaces (PR « contrat »
+        vers dev fusionnée en 3 jours max), MainWindow vide.
+   M2 : IUndoableAction, squelette d'UndoRedoManager, maquette du SlideCanvas qui affiche
+        un rectangle.
+   M3 : apprendre MVVM / binding, Colors.xaml et ControlStyles.xaml (style commun),
+        maquettes XAML du ruban et des vignettes (données factices).
+   M4 : EmuConverter + tests, README.
+   Jalon : l'application démarre (fenêtre vide), build et tests verts sur dev.
+
+PHASE 1 — PREMIER CYCLE DE BOUT EN BOUT
+   M1 : PptxReader / PptxWriter pour texte et formes simples ; Nouveau / Ouvrir /
+        Enregistrer branchés.
+   M2 : SlideRenderer (texte, formes, images) + sélection et déplacement.
+   M3 : vignettes (clic = changer de diapo), ruban branché (dont les boutons ajouter /
+        supprimer une diapo), StatusBarView.
+   M4 : DialogService, RecentFilesService, StatusBarViewModel, AddSlideAction /
+        DeleteSlideAction, fichiers .pptx de test.
+   Jalon : on ouvre un .pptx simple, on l'affiche, on déplace un objet, on enregistre
+           (F02, F03, F05, début de F11).
+
+PHASE 2 — ÉDITION COMPLÈTE
+   M1 : images (avec M3), héritage disposition / masque (PptxThemeResolver),
+        UnsupportedElement (F28).
+   M2 : redimensionner, pivoter, texte en place, annuler / rétablir complet,
+        copier-coller, ordre Z.
+   M3 : FormatPanel, dispositions, fond, glisser-déposer des vignettes, mappers texte / forme,
+        vues NewPresentationDialog, galerie de formes, sélecteur de couleurs, NotesPanel.
+   M4 : DuplicateSlideAction, MoveSlideAction, NotesViewModel.
+   Jalon : critères C1, C3, C4.
+
+PHASE 3 — DIAPORAMA ET FIDÉLITÉ (fin des fonctions P1 : PowerPoint de base)
+   M3 : SlideshowWindow (F18).
+   M1 : validation avec OpenXmlValidator, tests aller-retour sur de vrais fichiers.
+   M2 : performances.
+   M4 : compléter les tests unitaires et la collection de .pptx de test, commencer le
+        manuel utilisateur.
+   Jalon : critères C2, C5, C6. Toutes les fonctions P1 sont livrées : l'application est
+           utilisable comme un PowerPoint de base.
+
+PHASE 4 — FONCTIONS P2, PUIS P3 (après la version de base)
+   M3 : transitions (F24, PptxTransitionHandler), avec l'aide de M1.
+   M2 : guides d'alignement (F22), groupes (F23).
+   M4 : ExportService (PNG, F25), PptxNotesHandler (F21), avec l'aide de M1.
+   Les autres fonctions P2 de la section 2.3 (F26, F27, F29) sont ensuite prises par le
+   membre disponible, dans sa couche ; puis les fonctions P3, une par une.
+   Chaque fonction terminée est envoyée vers « dev » dès qu'elle est stable.
+
+PHASE 5 — FINITIONS
+   Quand l'équipe décide d'arrêter d'ajouter des fonctions : gel des fonctionnalités
+   (« feature freeze »), plus de nouvelle fonction, seulement des corrections. Tests, manuel
+   utilisateur, rapport, préparation de la démonstration (le scénario C1 à C7, répété
+   plusieurs fois).
+
+PHASE 6 — LIVRAISON / SOUTENANCE
+   Fusion finale de « dev » dans « main » (seul moment où « main » est modifiée, par M1),
+   étiquette « v1.0 » (Release GitHub), démo.
+
+SI LE TEMPS MANQUE (ou si l'on veut livrer plus tôt), couper dans cet ordre :
+   P3 -> F26 tableaux -> F23 groupes -> F24 transitions -> F22 guides d'alignement.
+   Ne JAMAIS couper : F02, F03, F11, F14, F18 (cœur d'un PowerPoint).
+
+==============================================================================
+9. MISE EN ROUTE PAS À PAS (AVEC LE « POURQUOI »)
+==============================================================================
+
+ÉTAPE 1 — Tout le monde : installer les outils.
+   Installer le SDK .NET 10, puis dans cmder : dotnet --version
+   Installer dans VS Code l'extension « C# Dev Kit » et vérifier que « git --version » marche.
+   Pourquoi : le SDK compile le code ; l'extension donne l'auto-complétion et le débogage ;
+   vérifier maintenant évite de découvrir un problème d'installation en pleine Phase 1.
+   (Si votre SDK est .NET 8 : changer <DotNetTfm> en net8.0 dans Directory.Build.props.)
+
+ÉTAPE 2 — Membre 1 : créer le dépôt et publier le squelette.
+   Sur github.com : créer un dépôt vide « WeakPoint » (sans README), inviter les 3 autres
+   membres en « Collaborators ». Puis, dans cmder, dans le dossier du squelette dézippé :
+      git init -b main
+      git add .
+      git commit -m "chore: structure initiale du projet"
+      git remote add origin https://github.com/<pseudo>/WeakPoint.git
+      git push -u origin main
+      git switch -c dev
+      git push -u origin dev
+      git switch -c m1                 (branche personnelle de M1)
+   Pourquoi : « init » crée l'historique local ; « add » + « commit » enregistrent une
+   première version ; « remote add » relie le dossier à GitHub ; « push » envoie le tout.
+   « switch -c dev » crée la branche d'intégration « dev », publiée par le second push ;
+   « switch -c m1 » crée la branche de M1. Ce premier push sur main est le seul avant la fin
+   du projet (voir R1).
+
+ÉTAPE 3 — Membres 2, 3, 4 : récupérer le projet.
+      git clone https://github.com/<pseudo>/WeakPoint.git
+      cd WeakPoint
+      git switch dev
+      git switch -c mX                 (SA branche personnelle : m2, m3 ou m4)
+   Pourquoi : « clone » télécharge le projet ET son historique, et le lie à GitHub. On crée
+   ensuite sa branche personnelle à partir de « dev ».
+
+ÉTAPE 4 — Tout le monde : vérifier que le squelette compile.
+      dotnet restore      (télécharge les paquets NuGet : OpenXml, xUnit)
+      dotnet build        (compile les 3 projets)
+      dotnet run --project src/WeakPoint.UI
+   Une fenêtre « Weak Point — squelette du projet » doit s'ouvrir.
+   Pourquoi : si ça marche chez tout le monde, on part d'une base commune saine. Le
+   squelette n'a pas pu être compilé là où il a été généré (pas d'environnement Windows) :
+   si une erreur apparaît, prévenir M1 immédiatement, c'est le moment de la corriger.
+
+ÉTAPE 5 — Membre 1 : sécuriser GitHub.
+   Remplacer les PSEUDO-MEMBRE-x dans .github/CODEOWNERS par les vrais pseudos. Dans
+   Settings > Branches : protéger « main » ET « dev » (Pull Request obligatoire, 1 approbation).
+   Pourquoi : on empêche mécaniquement les pushs directs et on automatise la relecture.
+
+ÉTAPE 6 — Chacun : cycle de travail quotidien.
+      git switch dev ; git pull                       (récupérer le travail des autres)
+      git switch mX ; git merge dev                   (mettre SA branche à jour ; mX = m1..m4)
+      ... coder dans SES fichiers ...
+      dotnet build ; dotnet test                      (vérifier avant de partager)
+      git add . ; git commit -m "feat: ..." ; git push -u origin mX
+      puis ouvrir la Pull Request sur GitHub (de mX vers dev), demander la relecture, puis
+      fusionner avec « Create a merge commit » (pas « Squash » : la branche personnelle est
+      gardée pendant tout le projet).
+   Pourquoi : chaque étape est un filet de sécurité (branche personnelle -> tests ->
+   relecture) qui protège « dev », la branche d'intégration. « main », la version que l'on
+   présentera, n'est touchée qu'une seule fois, à la fin (Phase 6).
+
+ÉTAPE 7 — Réunion de lancement (30 min) : confirmer les hypothèses H1 à H5, ouvrir les
+   Issues F01 à F20 et assigner chacune au bon membre selon la section 5.
+
+==============================================================================
+10. RISQUES ET PARADES
+==============================================================================
+
+  R1  Héritage disposition / masque / thème très complexe.
+      -> Commencer par les fichiers où les positions sont explicites ; valeurs par défaut
+         sinon ; tester sur de petits fichiers (TestFiles/) avant les fichiers réels.
+  R2  Fichier généré que PowerPoint refuse ou « répare ».
+      -> Partir d'un modèle vierge minimal (PptxTemplate), valider avec OpenXmlValidator
+         dans les tests, tester à chaque phase dans PowerPoint ET LibreOffice.
+  R3  Édition de texte en place trop complexe.
+      -> D'abord un TextBox simple (un seul format par zone), puis RichTextBox si le temps
+         le permet.
+  R4  M3 et M4 bloqués par le retard de M2 (SlideRenderer).
+      -> M2 livre un rendu simple dès la Phase 1 ; M3 / M4 ont un rendu provisoire.
+  R5  Conflits de fusion (surtout XAML).
+      -> Propriété stricte des fichiers (R5, R6 de la section 7), petites PR, pull
+         quotidien.
+  R6  Perte de données à l'enregistrement d'un fichier existant.
+      -> UnsupportedElement conserve le XML brut des objets non gérés (F28), testé par C6.
+  R7  Retard général.
+      -> Ordre de coupe défini en section 8 ; le cœur P1 est protégé.
+  R8  Rendu différent de PowerPoint (polices absentes, effets).
+      -> Accepté et déclaré dans le rapport (section 2.4). Objectif : fidélité de
+         position et de contenu, pas de pixel.
+  R9  Un membre indisponible.
+      -> Chaque module a un relecteur qui connaît le code ; documenter ses choix dans les
+         commentaires des fichiers.
+

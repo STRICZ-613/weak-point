@@ -1,0 +1,7 @@
+<UserControl x:Class="WeakPoint.UI.Views.Popups.ColorPickerPopup"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <!-- TODO (Membre 4) : Sélecteur de couleurs (palette + couleurs récentes) -->
+    </Grid>
+</UserControl>
